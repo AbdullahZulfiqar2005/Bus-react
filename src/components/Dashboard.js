@@ -16,6 +16,10 @@ import {
   Paper,
   Switch,
   FormControlLabel,
+  Card,
+  CardContent,
+  Grid,
+  Button,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -24,6 +28,7 @@ import {
   ExitToApp as LogoutIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  DirectionsBus as BusIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, signOut } from 'firebase/auth';
@@ -32,12 +37,59 @@ import MapView from '../MapView';
 
 const drawerWidth = 240;
 
+// Sample routes data
+const sampleRoutes = [
+  {
+    id: 1,
+    name: "Downtown Express",
+    description: "Fast service between downtown and business district",
+    stops: ["Central Station", "Business Park", "City Center"],
+    status: "Active"
+  },
+  {
+    id: 2,
+    name: "University Line",
+    description: "Connects main campus with student housing",
+    stops: ["Main Campus", "Student Village", "Library"],
+    status: "Active"
+  },
+  {
+    id: 3,
+    name: "Airport Shuttle",
+    description: "Direct service to and from the airport",
+    stops: ["City Center", "Airport Terminal 1", "Airport Terminal 2"],
+    status: "Active"
+  },
+  {
+    id: 4,
+    name: "Shopping Mall Route",
+    description: "Connects major shopping centers",
+    stops: ["West Mall", "East Mall", "Central Market"],
+    status: "Active"
+  },
+  {
+    id: 5,
+    name: "Hospital Line",
+    description: "Service to major medical centers",
+    stops: ["General Hospital", "Medical Center", "Clinic"],
+    status: "Active"
+  },
+  {
+    id: 6,
+    name: "Your Route Name",
+    description: "Your route description",
+    stops: ["Stop 1", "Stop 2", "Stop 3"],
+    status: "Active"
+  }
+];
+
 const Dashboard = ({ darkMode, setDarkMode }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const auth = getAuth();
   const [user, setUser] = useState(null);
   const [activeView, setActiveView] = useState('dashboard');
+  const [selectedRoute, setSelectedRoute] = useState(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -58,6 +110,15 @@ const Dashboard = ({ darkMode, setDarkMode }) => {
 
   const handleViewChange = (view) => {
     setActiveView(view);
+    if (view !== 'tracking') {
+      setSelectedRoute(null);
+    }
+  };
+
+  const handleRouteSelect = (route) => {
+    setSelectedRoute(route);
+    setActiveView('tracking');
+    toast.success(`Now tracking: ${route.name}`);
   };
 
   const menuItems = [
@@ -70,15 +131,104 @@ const Dashboard = ({ darkMode, setDarkMode }) => {
     switch (activeView) {
       case 'dashboard':
         return (
-          <Paper elevation={3} sx={{ p: 3, height: 'calc(100vh - 100px)' }}>
-            <Typography variant="h5" gutterBottom>Dashboard Overview</Typography>
-            <Typography variant="body1">
-              Welcome to the Bus Tracking System Dashboard. Here you can monitor all bus activities.
-            </Typography>
+          <Paper elevation={3} sx={{ p: 3, height: 'calc(100vh - 100px)', overflow: 'auto' }}>
+            <Typography variant="h5" gutterBottom>Available Routes</Typography>
+            <Grid container spacing={3} sx={{ mt: 2 }}>
+              {sampleRoutes.map((route) => (
+                <Grid item xs={12} sm={6} md={4} key={route.id}>
+                  <Card 
+                    sx={{ 
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s, box-shadow 0.2s',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: theme.shadows[8],
+                        cursor: 'pointer',
+                      },
+                    }}
+                    onClick={() => handleRouteSelect(route)}
+                  >
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <BusIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+                        <Typography variant="h6" component="div">
+                          {route.name}
+                        </Typography>
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {route.description}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 1 }}>
+                        <strong>Stops:</strong> {route.stops.join(' → ')}
+                      </Typography>
+                      <Box sx={{ 
+                        mt: 2, 
+                        display: 'flex', 
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: theme.palette.success.main,
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {route.status}
+                        </Typography>
+                        <Button 
+                          variant="outlined" 
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRouteSelect(route);
+                          }}
+                        >
+                          Track Route
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
           </Paper>
         );
       case 'tracking':
-        return <MapView />;
+        return (
+          <Box sx={{ height: 'calc(100vh - 100px)' }}>
+            {selectedRoute && (
+              <Paper 
+                elevation={3} 
+                sx={{ 
+                  p: 2, 
+                  mb: 2, 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <Box>
+                  <Typography variant="h6">
+                    Currently Tracking: {selectedRoute.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {selectedRoute.description}
+                  </Typography>
+                </Box>
+                <Button 
+                  variant="outlined" 
+                  onClick={() => setActiveView('dashboard')}
+                >
+                  Back to Routes
+                </Button>
+              </Paper>
+            )}
+            <MapView />
+          </Box>
+        );
       case 'settings':
         return (
           <Paper elevation={3} sx={{ p: 3, height: 'calc(100vh - 100px)' }}>
